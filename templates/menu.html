@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menú Digital - {{ nombre_restaurante }}</title>
+    <!-- Tailwind CSS Engine -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@0.544.0/dist/umd/lucide.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        
+        /* Ocultar barras de desplazamiento */
+        #contenedor-pestañas::-webkit-scrollbar,
+        #carrusel-portada::-webkit-scrollbar { display: none; }
+        #contenedor-pestañas, #carrusel-portada { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Estilo de la pestaña activa */
+        .tab-activa {
+            border: 2px solid #dc2626 !important;
+            background-color: #fef2f2 !important;
+            box-shadow: 0 4px 6px -1px rgb(220 38 38 / 0.2);
+            transform: scale(1.02);
+        }
+
+        /* Scroll Snap para el carrusel táctil */
+        .snap-x-mandatory {
+            scroll-snap-type: x mandatory;
+        }
+        .snap-center {
+            scroll-snap-align: center;
+        }
+    </style>
+</head>
+<body class="bg-stone-50 text-stone-900 antialiased selection:bg-red-600 selection:text-white">
+
+    <!-- Contenedor Principal -->
+    <div class="max-w-md mx-auto min-h-screen bg-white shadow-xl relative flex flex-col pb-16">
+        
+        <!-- 📸 ENCABEZADO SUPERIOR FIJO -->
+        <header id="header-principal" class="bg-white border-b border-stone-100 py-3 px-5 flex items-center justify-between sticky top-0 z-40">
+            <div class="flex items-center gap-2.5">
+                {% if logo_restaurante and logo_restaurante != "" %}
+                <img src="{{ logo_restaurante }}" alt="Logo" class="w-10 h-10 rounded-full object-cover border border-stone-200 shadow-sm">
+                {% else %}
+                <div class="w-10 h-10 bg-red-100 text-red-600 flex items-center justify-center rounded-full">
+                    <i data-lucide="utensils-crossed" class="w-5 h-5"></i>
+                </div>
+                {% endif %}
+                <h1 class="text-xl font-black text-red-700 tracking-tight font-serif">{{ nombre_restaurante }}</h1>
+            </div>
+
+            <div class="flex items-center gap-3 text-red-600">
+                <i data-lucide="smile" class="w-6 h-6"></i>
+                <i data-lucide="bell" class="w-6 h-6"></i>
+                <button class="bg-stone-100 p-2 rounded-xl text-stone-600">
+                    <i data-lucide="menu" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- 🚀 CARRUSEL DESLIZABLE DE OFERTAS (Touch + Auto-scroll) -->
+        {% if portada_background and portada_background != "" %}
+        <div class="px-5 pt-4">
+            <div class="relative w-full h-44 rounded-2xl overflow-hidden shadow-md bg-stone-900 group">
+                <!-- Contenedor deslizable táctil -->
+                <div id="carrusel-portada" class="flex w-full h-full overflow-x-auto snap-x-mandatory scroll-smooth">
+                    <!-- Las imágenes se insertan dinámicamente con JS -->
+                </div>
+
+                <!-- Insignia y Puntos de Navegación -->
+                <div class="absolute bottom-3 left-3 right-3 flex items-center justify-between pointer-events-none z-10">
+                    <span class="bg-red-600 text-white text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow">¡Ofertas Especiales!</span>
+                    <div id="puntosCarrusel" class="flex gap-1.5 items-center bg-black/40 px-2 py-1 rounded-full backdrop-blur-sm pointer-events-auto"></div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 🏷️ NAVEGACIÓN DE CATEGORÍAS FIJA AL DESLIZAR (Sticky Bar) -->
+        <div id="barra-pestañas-sticky" class="px-5 py-3 sticky top-[64px] z-30 bg-white/95 backdrop-blur-md border-b border-stone-100 shadow-sm mt-3">
+            <div id="contenedor-pestañas" class="flex items-center gap-2.5 overflow-x-auto scroll-smooth py-1">
+                {% for categoria, lista_platillos in menu_estructurado.items() %}
+                    {% set primera_foto = lista_platillos[0].url_imagen if lista_platillos and lista_platillos[0].url_imagen and lista_platillos[0].url_imagen != '' and lista_platillos[0].url_imagen != 'https://unsplash.com' else '' %}
+                    <button 
+                        class="pestana-categoria shrink-0 relative w-24 h-14 rounded-xl overflow-hidden shadow-sm flex items-center justify-center text-center transition-all duration-300 group focus:outline-none border border-stone-200"
+                        onclick="irASeccion('seccion-{{ loop.index0 }}', this)"
+                    >
+                        {% if primera_foto %}
+                        <img src="{{ primera_foto }}" alt="{{ categoria }}" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                        {% else %}
+                        <div class="absolute inset-0 bg-stone-800"></div>
+                        {% endif %}
+                        <div class="absolute inset-0 bg-black/50 group-hover:bg-black/40 transition-colors"></div>
+                        <span class="relative z-10 text-white font-bold text-[11px] uppercase tracking-wider drop-shadow px-1 line-clamp-2">
+                            {{ categoria }}
+                        </span>
+                    </button>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- CUERPO PRINCIPAL DEL MENÚ -->
+        <main class="pt-6 px-5 space-y-10">
+            {% for categoria, lista_platillos in menu_estructurado.items() %}
+            <section id="seccion-{{ loop.index0 }}" data-index="{{ loop.index0 }}" class="seccion-menu">
+                
+                <!-- Título de la Categoría -->
+                <div class="w-full bg-red-600 text-white font-bold text-center py-2.5 rounded-xl mb-5 uppercase tracking-wider shadow-sm text-sm">
+                    {{ categoria }}
+                </div>
+
+                <!-- Lista de Platillos -->
+                <div class="space-y-4">
+                    {% for p in lista_platillos %}
+                    <div class="flex bg-white rounded-2xl p-3 border border-stone-100 items-center justify-between gap-3 shadow-sm hover:border-red-200 transition-all">
+                        
+                        <!-- Imagen del Platillo -->
+                        <div class="w-24 h-24 bg-stone-100 rounded-xl overflow-hidden flex-shrink-0 cursor-zoom-in relative border border-stone-200">
+                            {% if p.url_imagen and p.url_imagen != "" and p.url_imagen != "https://unsplash.com" %}
+                            <img 
+                                src="{{ p.url_imagen }}" 
+                                alt="{{ p.nombre }}" 
+                                loading="lazy" 
+                                class="w-full h-full object-cover"
+                                onclick="ampliarImagen(this.src, '{{ p.nombre }}')"
+                                onerror="this.onerror=null; this.style.display='none';"
+                            >
+                            {% else %}
+                            <div class="w-full h-full flex items-center justify-center text-stone-400">
+                                <i data-lucide="utensils" class="w-6 h-6 opacity-40"></i>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Información del Platillo -->
+                        <div class="flex-1 min-w-0">
+                            <h3 class="font-extrabold text-stone-900 text-sm leading-tight">{{ p.nombre }}</h3>
+                            <p class="text-xs text-stone-500 mt-1 line-clamp-2 leading-relaxed">
+                                {{ p.descripcion or "" }}
+                            </p>
+                            <div class="text-red-600 font-black text-base mt-2 flex items-baseline gap-0.5">
+                                <span class="text-xs font-bold">Q</span>
+                                <span>{{ "%.2f"|format(p.precio) }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Botón de acción (+) -->
+                        <div class="flex-shrink-0 self-center pl-1">
+                            <button class="w-8 h-8 bg-red-600 text-white rounded-full flex items-center justify-center shadow hover:bg-red-700 transition-colors active:scale-95">
+                                <i data-lucide="plus" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endfor %}
+        </main>
+
+        <!-- Pie de página -->
+        <footer class="text-center text-[10px] text-stone-400 mt-12 pb-4">
+            Menú Digital NFC • Mesa #{{ mesa }}
+        </footer>
+    </div>
+
+    <!-- VENTANA EMERGENTE (MODAL) PARA IMÁGENES -->
+    <div id="modalImagen" style="display: none; background-color: rgba(0, 0, 0, 0.95);" class="fixed inset-0 backdrop-blur-md z-50 flex flex-col items-center justify-center p-4" onclick="cerrarImagen()">
+        <button class="absolute top-6 right-6 text-white bg-white/10 p-2 rounded-full hover:bg-white/20">
+            <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+        <img id="imagenAmpliada" src="" alt="" class="max-w-full max-h-[72vh] rounded-2xl shadow-2xl object-contain">
+        <p id="tituloImagenAmpliada" class="text-white font-bold text-lg mt-4 text-center px-4"></p>
+    </div>
+
+    <!-- Scripts de Interactividad -->
+    <script>
+        lucide.createIcons();
+
+        let isScrollingByClick = false;
+
+        // 1. CARRUSEL DESLIZABLE TÁCTIL + AUTO-ROTACIÓN
+        const rawPortada = "{{ portada_background | safe }}";
+        if (rawPortada && rawPortada.trim() !== "") {
+            const imagenesBanner = rawPortada.split(',').map(url => url.trim()).filter(Boolean);
+            const carrusel = document.getElementById('carrusel-portada');
+            const puntosContainer = document.getElementById('puntosCarrusel');
+            let timerAutoscroll = null;
+            let currentSlide = 0;
+
+            if (imagenesBanner.length > 0 && carrusel) {
+                // Generar elementos de imagen deslizables
+                imagenesBanner.forEach((url, idx) => {
+                    const slide = document.createElement('div');
+                    slide.className = 'w-full h-full shrink-0 snap-center cursor-grab active:cursor-grabbing';
+                    slide.innerHTML = `<img src="${url}" class="w-full h-full object-cover select-none" alt="Oferta ${idx + 1}">`;
+                    carrusel.appendChild(slide);
+
+                    // Indicadores
+                    const dot = document.createElement('button');
+                    dot.className = `h-1.5 rounded-full transition-all duration-300 ${idx === 0 ? 'w-5 bg-red-600' : 'w-1.5 bg-white/70'}`;
+                    dot.onclick = () => scrollToSlide(idx);
+                    puntosContainer.appendChild(dot);
+                });
+
+                function updateDots(index) {
+                    const dots = puntosContainer.children;
+                    for (let j = 0; j < dots.length; j++) {
+                        dots[j].className = `h-1.5 rounded-full transition-all duration-300 ${j === index ? 'w-5 bg-red-600' : 'w-1.5 bg-white/70'}`;
+                    }
+                }
+
+                function scrollToSlide(index) {
+                    currentSlide = index;
+                    carrusel.scrollTo({
+                        left: carrusel.clientWidth * index,
+                        behavior: 'smooth'
+                    });
+                    updateDots(index);
+                }
+
+                function autoAdvance() {
+                    currentSlide = (currentSlide + 1) % imagenesBanner.length;
+                    scrollToSlide(currentSlide);
+                }
+
+                // Detectar cuando el usuario desliza manualmente
+                carrusel.addEventListener('scroll', () => {
+                    const newIndex = Math.round(carrusel.scrollLeft / carrusel.clientWidth);
+                    if (newIndex !== currentSlide && newIndex >= 0 && newIndex < imagenesBanner.length) {
+                        currentSlide = newIndex;
+                        updateDots(currentSlide);
+                    }
+                });
+
+                // Iniciar rotación automática si hay más de 1 imagen
+                if (imagenesBanner.length > 1) {
+                    timerAutoscroll = setInterval(autoAdvance, 4500);
+
+                    // Pausar autoscroll al interactuar con el carrusel
+                    carrusel.addEventListener('touchstart', () => clearInterval(timerAutoscroll), {passive: true});
+                    carrusel.addEventListener('touchend', () => {
+                        clearInterval(timerAutoscroll);
+                        timerAutoscroll = setInterval(autoAdvance, 4500);
+                    });
+                }
+            }
+        }
+
+        // 2. SCROLL Y POSICIONAMIENTO EXACTO DE TÍTULOS
+        function irASeccion(idSeccion, botonPestana) {
+            const seccion = document.getElementById(idSeccion);
+            if (seccion) {
+                isScrollingByClick = true;
+                
+                // Calculamos dinámicamente la altura exacta del Header + Barra de Pestañas
+                const headerHeight = document.getElementById('header-principal').offsetHeight;
+                const pestañasHeight = document.getElementById('barra-pestañas-sticky').offsetHeight;
+                const offsetTotal = headerHeight + pestañasHeight + 12; // 12px de holgura limpia
+
+                const elementPosition = seccion.getBoundingClientRect().top;
+                const offsetPosition = elementPosition + window.pageYOffset - offsetTotal;
+
+                window.scrollTo({
+                    top: offsetPosition,
+                    behavior: 'smooth'
+                });
+
+                actualizarPestanaActiva(botonPestana);
+
+                setTimeout(() => {
+                    isScrollingByClick = false;
+                }, 750);
+            }
+        }
+
+        function actualizarPestanaActiva(botonPestana) {
+            document.querySelectorAll('.pestana-categoria').forEach(btn => btn.classList.remove('tab-activa'));
+            if (botonPestana) {
+                botonPestana.classList.add('tab-activa');
+                botonPestana.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
+            }
+        }
+
+        // 3. SCROLL SPY (Sincronización al desplazar hacia abajo)
+        const observerOptions = {
+            root: null,
+            rootMargin: '-150px 0px -50% 0px',
+            threshold: 0
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            if (isScrollingByClick) return;
+            
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const index = entry.target.getAttribute('data-index');
+                    const botones = document.querySelectorAll('.pestana-categoria');
+                    if (botones[index]) {
+                        actualizarPestanaActiva(botones[index]);
+                    }
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.seccion-menu').forEach(section => {
+            observer.observe(section);
+        });
+
+        document.addEventListener("DOMContentLoaded", function() {
+            const primeraPestana = document.querySelector('.pestana-categoria');
+            if(primeraPestana) {
+                primeraPestana.classList.add('tab-activa');
+            }
+        });
+
+        // MODAL DE IMÁGENES
+        function ampliarImagen(src, nombre) {
+            const modal = document.getElementById('modalImagen');
+            const img = document.getElementById('imagenAmpliada');
+            const titulo = document.getElementById('tituloImagenAmpliada');
+            img.src = src;
+            titulo.textContent = nombre;
+            modal.style.display = 'flex';
+        }
+
+        function cerrarImagen() {
+            document.getElementById('modalImagen').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
